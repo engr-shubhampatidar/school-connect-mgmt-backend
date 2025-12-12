@@ -1,0 +1,37 @@
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Contact } from '../../contact/entities/contact.entity';
+import { ClassEntity } from '../../classes/entities/class.entity';
+
+@Entity('schools')
+export class School {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column()
+  email: string;
+
+  @Column({ nullable: true })
+  address: string;
+
+  @Column({ nullable: true })
+  contact: string;
+
+  @Column({ nullable: true })
+  logoUrl: string;
+
+  @Column({ default: 'active' })
+  provisioningStatus: string;
+
+  @OneToMany(() => User, (u) => u.school)
+  users: User[];
+
+  @OneToMany(() => Contact, (c) => c.school)
+  contacts: Contact[];
+
+  @OneToMany(() => ClassEntity, (cl) => cl.school)
+  classes: ClassEntity[];
+}
