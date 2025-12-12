@@ -10,14 +10,14 @@ import {
 import { User } from '../../../users/entities/user.entity';
 import { School } from '../../../schools/entities/school.entity';
 import { ClassEntity } from '../../../classes/entities/class.entity';
-import { Subject } from './subject.entity';
+import { Subject } from '../../entities/subject.entity';
 
 @Entity('teacher_profiles')
 export class TeacherProfile {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (u) => u.id, { eager: true })
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn()
   user: User;
 

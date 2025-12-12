@@ -9,7 +9,7 @@ import { User } from '../../users/entities/user.entity';
 import { TeacherProfile } from './entities/teacher-profile.entity';
 import { School } from '../../schools/entities/school.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
-import { Subject } from './entities/subject.entity';
+import { Subject } from '../entities/subject.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import * as bcrypt from 'bcrypt';

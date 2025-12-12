@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Contact } from '../../contact/entities/contact.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
+import { Subject } from '../../admin/entities/subject.entity';
 
 @Entity('schools')
 export class School {
@@ -23,6 +24,15 @@ export class School {
   @Column({ nullable: true })
   logoUrl: string;
 
+  @Column({ nullable: true })
+  academicYear?: string;
+
+  @Column({ nullable: true })
+  timezone?: string;
+
+  @Column({ type: 'json', nullable: true })
+  notificationPreferences?: Record<string, unknown>;
+
   @Column({ default: 'active' })
   provisioningStatus: string;
 
@@ -34,4 +44,7 @@ export class School {
 
   @OneToMany(() => ClassEntity, (cl) => cl.school)
   classes: ClassEntity[];
+
+  @OneToMany(() => Subject, (subj) => subj.school)
+  subjects: Subject[];
 }

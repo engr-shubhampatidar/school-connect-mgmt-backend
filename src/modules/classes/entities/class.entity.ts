@@ -4,9 +4,11 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  ManyToMany,
 } from 'typeorm';
 import { School } from '../../schools/entities/school.entity';
 import { Student } from '../../students/entities/student.entity';
+import { TeacherProfile } from '../../admin/teachers/entities/teacher-profile.entity';
 
 @Entity({ name: 'classes' })
 export class ClassEntity {
@@ -24,4 +26,7 @@ export class ClassEntity {
 
   @OneToMany(() => Student, (s) => s.class)
   students: Student[];
+
+  @ManyToMany(() => TeacherProfile, (t) => t.classes)
+  teachers?: TeacherProfile[];
 }

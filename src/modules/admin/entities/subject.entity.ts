@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { School } from '../../schools/entities/school.entity';
 
 @Entity('subjects')
@@ -9,6 +15,13 @@ export class Subject {
   @Column()
   name: string;
 
-  @ManyToOne(() => School, (s) => s.id)
+  @Column({ nullable: true })
+  code?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deletedAt?: Date | null;
+
+  @ManyToOne(() => School, (s) => s.subjects)
+  @JoinColumn()
   school: School;
 }

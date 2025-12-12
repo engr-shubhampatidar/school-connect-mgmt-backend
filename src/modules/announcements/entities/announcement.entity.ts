@@ -20,6 +20,12 @@ export class Announcement {
   targetClassId: string;
 
   @Column()
+  schoolId: string;
+
+  @Column({ type: 'json', nullable: true })
+  attachments?: Array<{ filename: string; url: string }>;
+
+  @Column()
   createdByUserId: string;
 
   @CreateDateColumn()

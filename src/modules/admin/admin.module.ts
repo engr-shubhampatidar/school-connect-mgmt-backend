@@ -12,6 +12,11 @@ import { TeacherProfile } from './entities/teacher-profile.entity';
 import { Subject } from './entities/subject.entity';
 import { AdminTeachersService } from './teachers/teachers.service';
 import { AdminTeachersController } from './teachers/teachers.controller';
+import { AdminStudentsModule } from './students/students.module';
+import { AdminClassesModule } from './classes/classes.module';
+import { AdminSettingsModule } from './settings/settings.module';
+import { AdminAnnouncementsModule } from './announcements/announcements.module';
+import { AdminSubjectsModule } from './subjects/subjects.module';
 
 @Module({
   imports: [
@@ -26,6 +31,11 @@ import { AdminTeachersController } from './teachers/teachers.controller';
       TeacherProfile,
       Subject,
     ]),
+    AdminStudentsModule,
+    AdminClassesModule,
+    AdminSettingsModule,
+    AdminSubjectsModule,
+    AdminAnnouncementsModule,
   ],
   controllers: [AdminController, AdminTeachersController],
   providers: [AdminService, AdminGuard, AdminTeachersService],
