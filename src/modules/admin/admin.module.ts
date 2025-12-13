@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from '../auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
-import { AdminGuard } from './admin.guard';
-import { User } from '../users/entities/user.entity';
+// AdminGuard and User repository are provided via AuthModule
 import { School } from '../schools/entities/school.entity';
 import { Student } from '../students/entities/student.entity';
 import { ClassEntity } from '../classes/entities/class.entity';
@@ -20,11 +19,8 @@ import { AdminSubjectsModule } from './subjects/subjects.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.ACCESS_TOKEN_SECRET ?? 'access-secret',
-    }),
+    AuthModule,
     TypeOrmModule.forFeature([
-      User,
       School,
       Student,
       ClassEntity,
@@ -38,7 +34,7 @@ import { AdminSubjectsModule } from './subjects/subjects.module';
     AdminAnnouncementsModule,
   ],
   controllers: [AdminController, AdminTeachersController],
-  providers: [AdminService, AdminGuard, AdminTeachersService],
+  providers: [AdminService, AdminTeachersService],
   exports: [AdminService],
 })
 export class AdminModule {}

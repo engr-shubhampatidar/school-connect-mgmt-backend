@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { User } from '../../users/entities/user.entity';
 import { Contact } from '../../contact/entities/contact.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
@@ -45,6 +46,7 @@ export class School {
   @OneToMany(() => ClassEntity, (cl) => cl.school)
   classes: ClassEntity[];
 
+  @ApiPropertyOptional({ type: () => Subject, isArray: true })
   @OneToMany(() => Subject, (subj) => subj.school)
   subjects: Subject[];
 }

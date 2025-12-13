@@ -12,6 +12,6 @@ import { User } from '../users/entities/user.entity';
     TypeOrmModule.forFeature([User]),
   ],
   providers: [AdminGuard],
-  exports: [AdminGuard, JwtModule],
+  exports: [AdminGuard, JwtModule, TypeOrmModule],
 })
 export class AuthModule {}

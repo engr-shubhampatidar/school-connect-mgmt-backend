@@ -17,9 +17,19 @@ import { CreateSubjectDto } from './dto/create-subject.dto';
 import { QuerySubjectsDto } from './dto/query-subjects.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { Request } from 'express';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiExtraModels,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import { Subject } from '../entities/subject.entity';
 
 @ApiTags('Admin - Subjects')
+@ApiExtraModels(Subject)
 @UseGuards(AdminGuard)
 @ApiBearerAuth()
 @Controller('api/admin/subjects')
@@ -28,6 +38,7 @@ export class AdminSubjectsController {
 
   @Post()
   @ApiOperation({ summary: 'Create subject' })
+  @ApiCreatedResponse({ type: Subject })
   async create(
     @Req() req: Request & { user?: { school?: { id?: string } } },
     @Body() dto: CreateSubjectDto,
@@ -39,6 +50,13 @@ export class AdminSubjectsController {
 
   @Get()
   @ApiOperation({ summary: 'List subjects' })
+  @ApiOkResponse({
+    schema: {
+      properties: {
+        items: { type: 'array', items: { $ref: getSchemaPath(Subject) } },
+      },
+    },
+  })
   async list(
     @Req() req: Request & { user?: { school?: { id?: string } } },
     @Query() q: QuerySubjectsDto,
@@ -50,6 +68,7 @@ export class AdminSubjectsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update subject' })
+  @ApiOkResponse({ type: Subject })
   async update(
     @Req() req: Request & { user?: { school?: { id?: string } } },
     @Param('id') id: string,
@@ -62,6 +81,7 @@ export class AdminSubjectsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Soft-delete subject' })
+  @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
   async remove(
     @Req() req: Request & { user?: { school?: { id?: string } } },
     @Param('id') id: string,
