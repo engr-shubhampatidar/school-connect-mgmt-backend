@@ -8,6 +8,17 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable CORS for development frontends. Configure via CORS_ORIGINS env (comma-separated),
+  // otherwise allow http://localhost:3001 by default.
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim())
+    : ['http://localhost:3001'];
+  app.enableCors({
+    origin: corsOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
   // Validation (class-validator)
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
