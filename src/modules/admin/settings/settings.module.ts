@@ -1,21 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
 import { AdminSettingsController } from './settings.controller';
 import { AdminSettingsService } from './settings.service';
 import { School } from '../../schools/entities/school.entity';
-import { User } from '../../users/entities/user.entity';
-import { AdminGuard } from '../admin.guard';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-  imports: [
-    JwtModule.register({
-      secret: process.env.ACCESS_TOKEN_SECRET ?? 'access-secret',
-    }),
-    TypeOrmModule.forFeature([School, User]),
-  ],
+  imports: [AuthModule, TypeOrmModule.forFeature([School])],
   controllers: [AdminSettingsController],
-  providers: [AdminSettingsService, AdminGuard],
+  providers: [AdminSettingsService],
   exports: [AdminSettingsService],
 })
 export class AdminSettingsModule {}
