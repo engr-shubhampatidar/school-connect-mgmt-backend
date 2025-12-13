@@ -13,9 +13,19 @@ import { AdminAnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { QueryAnnouncementsDto } from './dto/query-announcements.dto';
 import { Request } from 'express';
-import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiExtraModels,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import { Announcement } from '../../announcements/entities/announcement.entity';
 
 @ApiTags('Admin - Announcements')
+@ApiExtraModels(Announcement)
 @UseGuards(AdminGuard)
 @ApiBearerAuth()
 @Controller('api/admin/announcements')
@@ -24,6 +34,7 @@ export class AdminAnnouncementsController {
 
   @Post()
   @ApiOperation({ summary: 'Create announcement' })
+  @ApiCreatedResponse({ type: Announcement })
   async create(
     @Req() req: Request & { user?: { id?: string; school?: { id?: string } } },
     @Body() dto: CreateAnnouncementDto,
@@ -36,6 +47,17 @@ export class AdminAnnouncementsController {
 
   @Get()
   @ApiOperation({ summary: 'List announcements' })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        items: { type: 'array', items: { $ref: getSchemaPath(Announcement) } },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' },
+      },
+    },
+  })
   async list(
     @Req() req: Request & { user?: { school?: { id?: string } } },
     @Query() q: QueryAnnouncementsDto,
