@@ -6,7 +6,7 @@ import { School } from 'src/modules/schools/entities/school.entity';
 import { Student } from 'src/modules/students/entities/student.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Subject } from 'src/modules/admin/entities/subject.entity';
-import { TeacherProfile } from 'src/modules/admin/teachers/entities/teacher-profile.entity';
+import { TeacherProfile } from 'src/modules/admin/entities/teacher-profile.entity';
 import { Announcement } from 'src/modules/announcements/entities/announcement.entity';
 import { Attendance } from 'src/modules/attendance/entities/attendance.entity';
 dotenv.config();

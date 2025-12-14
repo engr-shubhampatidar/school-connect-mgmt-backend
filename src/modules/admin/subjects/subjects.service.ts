@@ -9,7 +9,7 @@ import { Subject } from '../entities/subject.entity';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { QuerySubjectsDto } from './dto/query-subjects.dto';
-import { TeacherProfile } from '../teachers/entities/teacher-profile.entity';
+import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { School } from '../../schools/entities/school.entity';
 
 @Injectable()

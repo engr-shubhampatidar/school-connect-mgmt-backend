@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { TeacherProfile } from './entities/teacher-profile.entity';
+import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { School } from '../../schools/entities/school.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
 import { Subject } from '../entities/subject.entity';
@@ -109,6 +109,8 @@ export class AdminTeachersService {
     const qb = this.teacherRepo
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.user', 'user')
+      .leftJoinAndSelect('t.classes', 'classes')
+      .leftJoinAndSelect('t.subjects', 'subjects')
       .where('t.schoolId = :schoolId', { schoolId });
 
     if (query?.search) {
@@ -117,16 +119,12 @@ export class AdminTeachersService {
         { s: `%${query.search}%` },
       );
     }
-    if (query?.classId)
-      qb.andWhere(
-        ':classId = ANY(ARRAY(SELECT c.id FROM teacher_classes tc JOIN classes c ON c.id = ANY(string_to_array(tc.classIds, ",")) ))',
-        { classId: query.classId },
-      );
-    if (query?.subject)
-      qb.andWhere(
-        ':subject = ANY(ARRAY(SELECT s.name FROM teacher_subjects ts JOIN subjects s ON s.id = ANY(string_to_array(ts.subjectIds, ",")) ))',
-        { subject: query.subject },
-      );
+    if (query?.classId) {
+      qb.andWhere('classes.id = :classId', { classId: query.classId });
+    }
+    if (query?.subject) {
+      qb.andWhere('subjects.name = :subject', { subject: query.subject });
+    }
 
     const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return { items, total, page, limit };

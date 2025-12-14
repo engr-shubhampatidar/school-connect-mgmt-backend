@@ -4,7 +4,7 @@ import { AdminClassesController } from './classes.controller';
 import { AdminClassesService } from './classes.service';
 import { ClassEntity } from '../../classes/entities/class.entity';
 import { School } from '../../schools/entities/school.entity';
-import { TeacherProfile } from '../teachers/entities/teacher-profile.entity';
+import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { AuthModule } from '../../auth/auth.module';
 
 @Module({

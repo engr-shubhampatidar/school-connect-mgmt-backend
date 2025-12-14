@@ -10,7 +10,7 @@ import { School } from '../../schools/entities/school.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { AssignTeacherDto } from './dto/assign-teacher.dto';
-import { TeacherProfile } from '../teachers/entities/teacher-profile.entity';
+import { TeacherProfile } from '../entities/teacher-profile.entity';
 
 @Injectable()
 export class AdminClassesService {
