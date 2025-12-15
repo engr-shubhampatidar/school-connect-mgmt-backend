@@ -67,7 +67,7 @@ export class AdminTeachersService {
     // Ensure provided subjects exist; assignments are canonical via ClassTeacherAssignment
     if (dto.subjects && dto.subjects.length) {
       for (const name of dto.subjects) {
-        let s = await this.subjectRepo
+        const s = await this.subjectRepo
           .createQueryBuilder('s')
           .where('s.name = :name', { name })
           .andWhere('s.schoolId = :schoolId', { schoolId })
@@ -158,7 +158,7 @@ export class AdminTeachersService {
 
     if (dto.subjects) {
       for (const name of dto.subjects) {
-        let s = await this.subjectRepo
+        const s = await this.subjectRepo
           .createQueryBuilder('s')
           .where('s.name = :name', { name })
           .andWhere('s.schoolId = :schoolId', { schoolId })

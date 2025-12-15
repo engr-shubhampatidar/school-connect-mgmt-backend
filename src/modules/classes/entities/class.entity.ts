@@ -1,14 +1,13 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
+  Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
-  JoinColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { School } from '../../schools/entities/school.entity';
 import { Student } from '../../students/entities/student.entity';
-import { TeacherProfile } from '../../admin/entities/teacher-profile.entity';
 
 @Entity({ name: 'classes' })
 export class ClassEntity {

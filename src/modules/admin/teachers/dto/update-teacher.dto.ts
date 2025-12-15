@@ -4,8 +4,11 @@ import {
   IsArray,
   ArrayUnique,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ClassSubjectAssignmentDto } from './class-subject-assignment.dto';
 
 export class UpdateTeacherDto {
   @ApiPropertyOptional()
@@ -33,4 +36,15 @@ export class UpdateTeacherDto {
   @IsArray()
   @ArrayUnique()
   subjects?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Replace all assignments with new class-subject combinations. Use subjectId null for class teacher assignments.',
+    type: [ClassSubjectAssignmentDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ClassSubjectAssignmentDto)
+  assignClassSubjects?: ClassSubjectAssignmentDto[];
 }

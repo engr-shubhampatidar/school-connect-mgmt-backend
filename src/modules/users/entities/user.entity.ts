@@ -27,14 +27,17 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
-  fullName: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  fullName?: string | null;
 
-  @Column({ length: 255 })
-  email: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email?: string | null;
 
-  @Column({ length: 255 })
-  passwordHash: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  passwordHash?: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone?: string | null;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.ADMIN })
   role: UserRole;
@@ -45,6 +48,9 @@ export class User {
   })
   @JoinColumn({ name: 'schoolId' })
   school: School;
+
+  @Column({ nullable: true })
+  schoolId?: string | null;
 
   @Column({ default: false })
   emailVerified: boolean;

@@ -53,6 +53,9 @@ export class AdminService {
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
+    if (!user.passwordHash)
+      throw new UnauthorizedException('Invalid credentials');
+
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 

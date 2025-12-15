@@ -38,6 +38,9 @@ export class ClassTeacherAssignment {
   @Column({ nullable: true })
   subjectId?: string | null;
 
+  @Column({ default: false })
+  isClassTeacher: boolean;
+
   @ManyToOne(() => School, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'schoolId' })
   school: School;

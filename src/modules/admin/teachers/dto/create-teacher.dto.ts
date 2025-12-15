@@ -5,8 +5,11 @@ import {
   IsArray,
   ArrayUnique,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ClassSubjectAssignmentDto } from './class-subject-assignment.dto';
 
 export class CreateTeacherDto {
   @ApiProperty({ example: 'teacher@example.com' })
@@ -45,4 +48,15 @@ export class CreateTeacherDto {
   @IsOptional()
   @IsUUID()
   classId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Assign teacher to class-subject combinations. Use subjectId null for class teacher assignments.',
+    type: [ClassSubjectAssignmentDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ClassSubjectAssignmentDto)
+  assignClassSubjects?: ClassSubjectAssignmentDto[];
 }
