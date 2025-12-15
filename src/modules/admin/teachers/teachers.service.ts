@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { Repository, IsNull } from 'typeorm';
+import { User, UserRole } from '../../users/entities/user.entity';
 import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { School } from '../../schools/entities/school.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
@@ -55,7 +55,7 @@ export class AdminTeachersService {
       fullName: dto.fullName,
       email: dto.email,
       passwordHash: hash,
-      role: 'teacher',
+      role: UserRole.TEACHER,
       school,
     })) as User;
 
@@ -66,17 +66,8 @@ export class AdminTeachersService {
       };
     if (dto.phone) teacherObj.phone = dto.phone;
 
-    if (dto.assignClassIds && dto.assignClassIds.length) {
-      const classes = await this.classRepo
-        .createQueryBuilder('c')
-        .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
-        .andWhere('c.schoolId = :schoolId', { schoolId })
-        .getMany();
-      teacherObj.classes = classes;
-    }
-
+    // If subject names provided, ensure Subject records exist (no direct teacher relation)
     if (dto.subjects && dto.subjects.length) {
-      const subjects: Subject[] = [];
       for (const name of dto.subjects) {
         let s = await this.subjectRepo
           .createQueryBuilder('s')
@@ -84,11 +75,9 @@ export class AdminTeachersService {
           .andWhere('s.schoolId = :schoolId', { schoolId })
           .getOne();
         if (!s) {
-          s = (await this.subjectRepo.save({ name, school })) as Subject;
+          await this.subjectRepo.save({ name, school });
         }
-        subjects.push(s);
       }
-      teacherObj.subjects = subjects;
     }
 
     const saved = (await this.teacherRepo.save(teacherObj)) as TeacherProfile;
@@ -113,7 +102,7 @@ export class AdminTeachersService {
         throw new BadRequestException('Class already has a class teacher');
       }
 
-      // create assignment and add relation in a transaction
+      // create assignment in a transaction
       await this.assignmentRepo.manager.transaction(async (manager) => {
         const assignment = manager.create(ClassTeacherAssignment, {
           classId: dtoAs.classId,
@@ -121,13 +110,22 @@ export class AdminTeachersService {
           subjectId: null,
         });
         await manager.save(assignment);
-
-        await manager
-          .createQueryBuilder()
-          .relation(TeacherProfile, 'classes')
-          .of(saved.id)
-          .add(dtoAs.classId as string);
       });
+    }
+
+    // If assignClassIds provided on create, create assignments for each class
+    if (dto.assignClassIds && dto.assignClassIds.length) {
+      const classes = await this.classRepo
+        .createQueryBuilder('c')
+        .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
+        .andWhere('c.schoolId = :schoolId', { schoolId })
+        .getMany();
+      if (classes.length) {
+        const assignments = classes.map((c) =>
+          this.assignmentRepo.create({ classId: c.id, teacherId: saved.id }),
+        );
+        await this.assignmentRepo.save(assignments);
+      }
     }
 
     return { id: saved.id, userId: savedUser.id, message: 'Teacher created' };
@@ -151,8 +149,6 @@ export class AdminTeachersService {
     const qb = this.teacherRepo
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.user', 'user')
-      .leftJoinAndSelect('t.classes', 'classes')
-      .leftJoinAndSelect('t.subjects', 'subjects')
       .where('t.schoolId = :schoolId', { schoolId });
 
     if (query?.search) {
@@ -162,10 +158,16 @@ export class AdminTeachersService {
       );
     }
     if (query?.classId) {
-      qb.andWhere('classes.id = :classId', { classId: query.classId });
+      qb.andWhere(
+        'EXISTS (SELECT 1 FROM class_teacher_assignments a WHERE a.teacherId = t.id AND a.classId = :classId)',
+        { classId: query.classId },
+      );
     }
     if (query?.subject) {
-      qb.andWhere('subjects.name = :subject', { subject: query.subject });
+      qb.andWhere(
+        'EXISTS (SELECT 1 FROM class_teacher_assignments a JOIN subjects s ON s.id = a.subjectId WHERE a.teacherId = t.id AND s.name = :subject)',
+        { subject: query.subject },
+      );
     }
 
     const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
@@ -176,7 +178,7 @@ export class AdminTeachersService {
     const school = await this.ensureSchool(schoolId);
     const teacher = await this.teacherRepo.findOne({
       where: { id },
-      relations: ['user', 'classes', 'subjects'],
+      relations: ['user'],
     });
     if (!teacher) throw new NotFoundException('Teacher not found');
     if (teacher.school?.id !== schoolId)
@@ -186,26 +188,30 @@ export class AdminTeachersService {
     if (dto.phone !== undefined) teacher.phone = dto.phone;
 
     if (dto.assignClassIds) {
+      // replace existing class assignments (subjectId NULL) with provided list
+      await this.assignmentRepo.delete({ teacherId: id, subjectId: IsNull() });
       const classes = await this.classRepo
         .createQueryBuilder('c')
         .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
         .andWhere('c.schoolId = :schoolId', { schoolId })
         .getMany();
-      teacher.classes = classes;
+      if (classes.length) {
+        const assignments = classes.map((c) =>
+          this.assignmentRepo.create({ classId: c.id, teacherId: id }),
+        );
+        await this.assignmentRepo.save(assignments);
+      }
     }
 
     if (dto.subjects) {
-      const subjects: Subject[] = [];
       for (const name of dto.subjects) {
         let s = await this.subjectRepo
           .createQueryBuilder('s')
           .where('s.name = :name', { name })
           .andWhere('s.schoolId = :schoolId', { schoolId })
           .getOne();
-        if (!s) s = (await this.subjectRepo.save({ name, school })) as Subject;
-        subjects.push(s);
+        if (!s) await this.subjectRepo.save({ name, school });
       }
-      teacher.subjects = subjects;
     }
 
     await this.userRepo.save(teacher.user);

@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { Contact } from '../contact/entities/contact.entity';
 import { School } from '../schools/entities/school.entity';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { RegisterSchoolDto } from './dto/register-school.dto';
 
 @Injectable()
@@ -48,7 +48,7 @@ export class PublicService {
       fullName: `${dto.name} Admin`,
       email: dto.email,
       passwordHash: pwHash,
-      role: 'admin',
+      role: UserRole.ADMIN,
       school: savedSchool,
     });
     const savedUser = await this.userRepo.save(adminUser);

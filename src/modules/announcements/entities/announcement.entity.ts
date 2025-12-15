@@ -3,8 +3,11 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { School } from '../../schools/entities/school.entity';
 
 @Entity({ name: 'announcements' })
 export class Announcement {
@@ -30,6 +33,11 @@ export class Announcement {
   @ApiProperty({ description: 'Owning school id', type: 'string' })
   @Column()
   schoolId: string;
+
+  @ApiProperty({ type: () => School, description: 'Owning school' })
+  @ManyToOne(() => School, { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'schoolId' })
+  school: School;
 
   @ApiPropertyOptional({
     description: 'Optional attachments',

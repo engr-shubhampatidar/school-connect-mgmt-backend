@@ -9,6 +9,7 @@ import {
 import { ClassEntity } from '../../../classes/entities/class.entity';
 import { TeacherProfile } from '../../entities/teacher-profile.entity';
 import { Subject } from '../../entities/subject.entity';
+import { School } from '../../../schools/entities/school.entity';
 
 @Entity('class_teacher_assignments')
 @Unique(['classId', 'teacherId', 'subjectId'])
@@ -36,4 +37,11 @@ export class ClassTeacherAssignment {
 
   @Column({ nullable: true })
   subjectId?: string | null;
+
+  @ManyToOne(() => School, { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'schoolId' })
+  school: School;
+
+  @Column()
+  schoolId: string;
 }

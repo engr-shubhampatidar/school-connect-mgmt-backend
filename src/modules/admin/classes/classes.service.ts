@@ -110,14 +110,6 @@ export class AdminClassesService {
           subjectId,
         });
         await manager.save(assignment);
-
-        if (teacherId) {
-          await manager
-            .createQueryBuilder()
-            .relation(TeacherProfile, 'classes')
-            .of(teacherId)
-            .add(saved.id);
-        }
       });
     }
 
@@ -170,13 +162,14 @@ export class AdminClassesService {
     if (teacher.school?.id !== schoolId)
       throw new BadRequestException('Teacher does not belong to your school');
 
-    // Use transaction via manager to add relation safely
-    await this.teacherRepo.manager.transaction(async (manager) => {
-      await manager
-        .createQueryBuilder()
-        .relation(TeacherProfile, 'classes')
-        .of(teacher.id)
-        .add(cls.id);
+    // Create a class-teacher assignment (subjectId null)
+    await this.assignmentRepo.manager.transaction(async (manager) => {
+      const assignment = manager.create(ClassTeacherAssignment, {
+        classId: cls.id,
+        teacherId: teacher.id,
+        subjectId: null,
+      });
+      await manager.save(assignment);
     });
 
     return { message: 'Teacher assigned' };

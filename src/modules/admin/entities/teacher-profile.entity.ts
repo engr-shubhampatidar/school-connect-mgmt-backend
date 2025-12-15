@@ -4,13 +4,9 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  ManyToMany,
-  JoinTable,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { School } from '../../schools/entities/school.entity';
-import { ClassEntity } from '../../classes/entities/class.entity';
-import { Subject } from './subject.entity';
 
 @Entity('teacher_profiles')
 export class TeacherProfile {
@@ -22,16 +18,11 @@ export class TeacherProfile {
   user: User;
 
   @ManyToOne(() => School, (s) => s.id)
+  @JoinColumn({ name: 'schoolId' })
   school: School;
 
   @Column({ nullable: true })
   phone?: string;
 
-  @ManyToMany(() => ClassEntity, { eager: true })
-  @JoinTable({ name: 'teacher_classes' })
-  classes?: ClassEntity[];
-
-  @ManyToMany(() => Subject, { eager: true })
-  @JoinTable({ name: 'teacher_subjects' })
-  subjects?: Subject[];
+  // Class and subject membership is now represented via ClassTeacherAssignment
 }

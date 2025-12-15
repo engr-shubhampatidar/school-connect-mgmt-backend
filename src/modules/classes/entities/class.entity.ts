@@ -4,7 +4,7 @@ import {
   Column,
   ManyToOne,
   OneToMany,
-  ManyToMany,
+  JoinColumn,
 } from 'typeorm';
 import { School } from '../../schools/entities/school.entity';
 import { Student } from '../../students/entities/student.entity';
@@ -22,11 +22,11 @@ export class ClassEntity {
   section: string; // "A"
 
   @ManyToOne(() => School, (s) => s.classes)
+  @JoinColumn({ name: 'schoolId' })
   school: School;
 
-  @OneToMany(() => Student, (s) => s.class)
+  @OneToMany(() => Student, (s) => s.currentClass)
   students: Student[];
 
-  @ManyToMany(() => TeacherProfile, (t) => t.classes)
-  teachers?: TeacherProfile[];
+  // Teachers for a class are represented via ClassTeacherAssignment
 }

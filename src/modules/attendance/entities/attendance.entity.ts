@@ -4,9 +4,11 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Student } from '../../students/entities/student.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
+import { School } from '../../schools/entities/school.entity';
 
 @Entity({ name: 'attendance' })
 export class Attendance {
@@ -18,6 +20,10 @@ export class Attendance {
 
   @ManyToOne(() => Student)
   student: Student;
+
+  @ManyToOne(() => School, { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'schoolId' })
+  school: School;
 
   @Column({ type: 'date' })
   date: string;

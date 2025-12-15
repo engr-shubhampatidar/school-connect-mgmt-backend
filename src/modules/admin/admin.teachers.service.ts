@@ -4,12 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+import { Repository, IsNull } from 'typeorm';
+import { User, UserRole } from '../users/entities/user.entity';
 import { TeacherProfile } from './entities/teacher-profile.entity';
 import { School } from '../schools/entities/school.entity';
 import { ClassEntity } from '../classes/entities/class.entity';
 import { Subject } from './entities/subject.entity';
+import { ClassTeacherAssignment } from './classes/entities/class-teacher-assignment.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import * as bcrypt from 'bcrypt';
@@ -27,6 +28,8 @@ export class AdminTeachersService {
     private classRepo: Repository<ClassEntity>,
     @InjectRepository(Subject)
     private subjectRepo: Repository<Subject>,
+    @InjectRepository(ClassTeacherAssignment)
+    private assignmentRepo: Repository<ClassTeacherAssignment>,
   ) {}
 
   private async ensureSchool(schoolId: string) {
@@ -50,7 +53,7 @@ export class AdminTeachersService {
       fullName: dto.fullName,
       email: dto.email,
       passwordHash: hash,
-      role: 'teacher',
+      role: UserRole.TEACHER,
       school,
     })) as User;
 
@@ -61,17 +64,8 @@ export class AdminTeachersService {
       };
     if (dto.phone) teacherObj.phone = dto.phone;
 
-    if (dto.assignClassIds && dto.assignClassIds.length) {
-      const classes = await this.classRepo
-        .createQueryBuilder('c')
-        .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
-        .andWhere('c.schoolId = :schoolId', { schoolId })
-        .getMany();
-      teacherObj.classes = classes;
-    }
-
+    // Ensure provided subjects exist; assignments are canonical via ClassTeacherAssignment
     if (dto.subjects && dto.subjects.length) {
-      const subjects: Subject[] = [];
       for (const name of dto.subjects) {
         let s = await this.subjectRepo
           .createQueryBuilder('s')
@@ -79,11 +73,9 @@ export class AdminTeachersService {
           .andWhere('s.schoolId = :schoolId', { schoolId })
           .getOne();
         if (!s) {
-          s = (await this.subjectRepo.save({ name, school })) as Subject;
+          await this.subjectRepo.save({ name, school });
         }
-        subjects.push(s);
       }
-      teacherObj.subjects = subjects;
     }
 
     const saved = (await this.teacherRepo.save(teacherObj)) as TeacherProfile;
@@ -118,16 +110,18 @@ export class AdminTeachersService {
         { s: `%${query.search}%` },
       );
     }
-    if (query?.classId)
+    if (query?.classId) {
       qb.andWhere(
-        ':classId = ANY(ARRAY(SELECT c.id FROM teacher_classes tc JOIN classes c ON c.id = ANY(string_to_array(tc.classIds, ",")) ))',
+        'EXISTS (SELECT 1 FROM class_teacher_assignments a WHERE a.teacherId = t.id AND a.classId = :classId)',
         { classId: query.classId },
       );
-    if (query?.subject)
+    }
+    if (query?.subject) {
       qb.andWhere(
-        ':subject = ANY(ARRAY(SELECT s.name FROM teacher_subjects ts JOIN subjects s ON s.id = ANY(string_to_array(ts.subjectIds, ",")) ))',
+        'EXISTS (SELECT 1 FROM class_teacher_assignments a JOIN subjects s ON s.id = a.subjectId WHERE a.teacherId = t.id AND s.name = :subject)',
         { subject: query.subject },
       );
+    }
 
     const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return { items, total, page, limit };
@@ -137,7 +131,7 @@ export class AdminTeachersService {
     const school = await this.ensureSchool(schoolId);
     const teacher = await this.teacherRepo.findOne({
       where: { id },
-      relations: ['user', 'classes', 'subjects'],
+      relations: ['user'],
     });
     if (!teacher) throw new NotFoundException('Teacher not found');
     if (teacher.school?.id !== schoolId)
@@ -147,26 +141,30 @@ export class AdminTeachersService {
     if (dto.phone !== undefined) teacher.phone = dto.phone;
 
     if (dto.assignClassIds) {
+      // replace existing class assignments (subjectId NULL) with provided list
+      await this.assignmentRepo.delete({ teacherId: id, subjectId: IsNull() });
       const classes = await this.classRepo
         .createQueryBuilder('c')
         .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
         .andWhere('c.schoolId = :schoolId', { schoolId })
         .getMany();
-      teacher.classes = classes;
+      if (classes.length) {
+        const assignments = classes.map((c) =>
+          this.assignmentRepo.create({ classId: c.id, teacherId: id }),
+        );
+        await this.assignmentRepo.save(assignments);
+      }
     }
 
     if (dto.subjects) {
-      const subjects: Subject[] = [];
       for (const name of dto.subjects) {
         let s = await this.subjectRepo
           .createQueryBuilder('s')
           .where('s.name = :name', { name })
           .andWhere('s.schoolId = :schoolId', { schoolId })
           .getOne();
-        if (!s) s = (await this.subjectRepo.save({ name, school })) as Subject;
-        subjects.push(s);
+        if (!s) await this.subjectRepo.save({ name, school });
       }
-      teacher.subjects = subjects;
     }
 
     await this.userRepo.save(teacher.user);

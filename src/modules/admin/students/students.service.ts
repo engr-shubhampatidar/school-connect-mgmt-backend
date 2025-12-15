@@ -40,7 +40,7 @@ export class AdminStudentsService {
     const student = this.studentRepo.create({
       name: dto.name,
       rollNo: dto.rollNo,
-      class: cls,
+      currentClass: cls,
       school: { id: schoolId },
       photoUrl: dto.photoUrl,
     });
@@ -65,7 +65,7 @@ export class AdminStudentsService {
 
     const qb = this.studentRepo
       .createQueryBuilder('s')
-      .leftJoinAndSelect('s.class', 'c')
+      .leftJoinAndSelect('s.currentClass', 'c')
       .where('s.schoolId = :schoolId', { schoolId });
     if (query?.search)
       qb.andWhere('(s.name ILIKE :q OR s.rollNo ILIKE :q)', {
@@ -82,7 +82,7 @@ export class AdminStudentsService {
     await this.ensureSchool(schoolId);
     const student = await this.studentRepo.findOne({
       where: { id },
-      relations: ['class'],
+      relations: ['currentClass'],
     });
     if (!student) throw new NotFoundException('Student not found');
     if (student.school?.id !== schoolId)
@@ -93,7 +93,7 @@ export class AdminStudentsService {
         where: { id: dto.classId, school: { id: schoolId } },
       });
       if (!cls) throw new BadRequestException('Invalid class for this school');
-      student.class = cls;
+      student.currentClass = cls;
     }
 
     if (dto.name !== undefined) student.name = dto.name;
@@ -156,7 +156,7 @@ export class AdminStudentsService {
       const s = this.studentRepo.create({
         name,
         rollNo: rollNo || undefined,
-        class: cls,
+        currentClass: cls,
         school: { id: schoolId },
         photoUrl,
       });
@@ -260,7 +260,7 @@ export class AdminStudentsService {
       const s = this.studentRepo.create({
         name,
         rollNo: rollNo || undefined,
-        class: cls,
+        currentClass: cls,
         school: { id: schoolId },
         photoUrl,
       });

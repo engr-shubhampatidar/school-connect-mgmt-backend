@@ -9,7 +9,7 @@ import { Subject } from '../entities/subject.entity';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { QuerySubjectsDto } from './dto/query-subjects.dto';
-import { TeacherProfile } from '../entities/teacher-profile.entity';
+import { ClassTeacherAssignment } from '../classes/entities/class-teacher-assignment.entity';
 import { School } from '../../schools/entities/school.entity';
 
 @Injectable()
@@ -17,8 +17,8 @@ export class AdminSubjectsService {
   constructor(
     @InjectRepository(Subject)
     private subjectRepo: Repository<Subject>,
-    @InjectRepository(TeacherProfile)
-    private teacherRepo: Repository<TeacherProfile>,
+    @InjectRepository(ClassTeacherAssignment)
+    private assignmentRepo: Repository<ClassTeacherAssignment>,
     @InjectRepository(School)
     private schoolRepo: Repository<School>,
   ) {}
@@ -97,9 +97,9 @@ export class AdminSubjectsService {
     if (subject.school?.id !== schoolId)
       throw new BadRequestException('Not allowed');
 
-    const assignedCount = await this.teacherRepo
-      .createQueryBuilder('t')
-      .innerJoin('t.subjects', 'subj', 'subj.id = :id', { id })
+    const assignedCount = await this.assignmentRepo
+      .createQueryBuilder('a')
+      .where('a.subjectId = :id', { id })
       .getCount();
     if (assignedCount > 0)
       throw new BadRequestException(
