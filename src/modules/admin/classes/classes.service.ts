@@ -11,6 +11,8 @@ import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { AssignTeacherDto } from './dto/assign-teacher.dto';
 import { TeacherProfile } from '../entities/teacher-profile.entity';
+import { Subject } from '../entities/subject.entity';
+import { ClassTeacherAssignment } from './entities/class-teacher-assignment.entity';
 
 @Injectable()
 export class AdminClassesService {
@@ -21,6 +23,10 @@ export class AdminClassesService {
     private schoolRepo: Repository<School>,
     @InjectRepository(TeacherProfile)
     private teacherRepo: Repository<TeacherProfile>,
+    @InjectRepository(Subject)
+    private subjectRepo: Repository<Subject>,
+    @InjectRepository(ClassTeacherAssignment)
+    private assignmentRepo: Repository<ClassTeacherAssignment>,
   ) {}
 
   private async ensureSchool(schoolId: string) {
@@ -53,6 +59,68 @@ export class AdminClassesService {
       school,
     });
     const saved = await this.classRepo.save(cls);
+
+    // optional teacher+subject assignment
+    if (dto.teacherId || dto.subjectId) {
+      const dtoAs = dto as unknown as {
+        teacherId?: string;
+        subjectId?: string;
+      };
+
+      let teacherId: string | null = null;
+      if (
+        typeof dtoAs.teacherId === 'string' &&
+        dtoAs.teacherId.trim() !== ''
+      ) {
+        teacherId = dtoAs.teacherId;
+      }
+
+      let subjectId: string | null = null;
+      if (
+        typeof dtoAs.subjectId === 'string' &&
+        dtoAs.subjectId.trim() !== ''
+      ) {
+        subjectId = dtoAs.subjectId;
+      }
+
+      let teacher: TeacherProfile | null = null;
+      if (teacherId) {
+        teacher = await this.teacherRepo.findOne({
+          where: { id: teacherId },
+          relations: ['school'],
+        });
+        if (!teacher || !teacher.school || teacher.school.id !== schoolId)
+          throw new BadRequestException('Teacher invalid or not in school');
+      }
+
+      let subject: Subject | null = null;
+      if (subjectId) {
+        subject = await this.subjectRepo.findOne({
+          where: { id: subjectId },
+          relations: ['school'],
+        });
+        if (!subject || !subject.school || subject.school.id !== schoolId)
+          throw new BadRequestException('Subject invalid or not in school');
+      }
+
+      await this.assignmentRepo.manager.transaction(async (manager) => {
+        const assignment = manager.create(ClassTeacherAssignment, {
+          classId: saved.id,
+          teacherId,
+          subjectId,
+        });
+        await manager.save(assignment);
+
+        if (teacherId) {
+          await manager
+            .createQueryBuilder()
+            .relation(TeacherProfile, 'classes')
+            .of(teacherId)
+            .add(saved.id);
+        }
+      });
+    }
+
     return { id: saved.id, name: saved.name };
   }
 
