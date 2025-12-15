@@ -37,4 +37,12 @@ export class CreateTeacherDto {
   @IsArray()
   @ArrayUnique()
   subjects?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Optional class id to assign this teacher as the class teacher',
+  })
+  @IsOptional()
+  @IsUUID()
+  classId?: string;
 }

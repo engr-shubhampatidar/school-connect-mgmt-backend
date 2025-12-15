@@ -10,6 +10,7 @@ import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { School } from '../../schools/entities/school.entity';
 import { ClassEntity } from '../../classes/entities/class.entity';
 import { Subject } from '../entities/subject.entity';
+import { ClassTeacherAssignment } from '../classes/entities/class-teacher-assignment.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import * as bcrypt from 'bcrypt';
@@ -27,6 +28,8 @@ export class AdminTeachersService {
     private classRepo: Repository<ClassEntity>,
     @InjectRepository(Subject)
     private subjectRepo: Repository<Subject>,
+    @InjectRepository(ClassTeacherAssignment)
+    private assignmentRepo: Repository<ClassTeacherAssignment>,
   ) {}
 
   private async ensureSchool(schoolId: string) {
@@ -37,6 +40,8 @@ export class AdminTeachersService {
 
   async create(schoolId: string, dto: CreateTeacherDto) {
     const school = await this.ensureSchool(schoolId);
+
+    const dtoAs = dto as unknown as { classId?: string };
 
     const existing = await this.userRepo.findOne({
       where: { email: dto.email },
@@ -87,6 +92,43 @@ export class AdminTeachersService {
     }
 
     const saved = (await this.teacherRepo.save(teacherObj)) as TeacherProfile;
+
+    // optional: assign as class teacher (single class leader)
+    if (dtoAs.classId) {
+      // ensure class exists and belongs to school
+      const cls = await this.classRepo.findOne({
+        where: { id: dtoAs.classId },
+        relations: ['school'],
+      });
+      if (!cls || !cls.school || cls.school.id !== schoolId)
+        throw new BadRequestException('Class invalid or not in school');
+
+      // ensure class doesn't already have a class teacher (subjectId IS NULL)
+      const existing = await this.assignmentRepo
+        .createQueryBuilder('a')
+        .where('a.classId = :classId', { classId: dtoAs.classId })
+        .andWhere('a.subjectId IS NULL')
+        .getOne();
+      if (existing) {
+        throw new BadRequestException('Class already has a class teacher');
+      }
+
+      // create assignment and add relation in a transaction
+      await this.assignmentRepo.manager.transaction(async (manager) => {
+        const assignment = manager.create(ClassTeacherAssignment, {
+          classId: dtoAs.classId,
+          teacherId: saved.id,
+          subjectId: null,
+        });
+        await manager.save(assignment);
+
+        await manager
+          .createQueryBuilder()
+          .relation(TeacherProfile, 'classes')
+          .of(saved.id)
+          .add(dtoAs.classId as string);
+      });
+    }
 
     return { id: saved.id, userId: savedUser.id, message: 'Teacher created' };
   }

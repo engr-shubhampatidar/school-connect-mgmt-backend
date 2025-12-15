@@ -9,6 +9,7 @@ import { Student } from '../students/entities/student.entity';
 import { ClassEntity } from '../classes/entities/class.entity';
 import { TeacherProfile } from './entities/teacher-profile.entity';
 import { Subject } from './entities/subject.entity';
+import { ClassTeacherAssignment } from './classes/entities/class-teacher-assignment.entity';
 import { AdminTeachersService } from './teachers/teachers.service';
 import { AdminTeachersController } from './teachers/teachers.controller';
 import { AdminStudentsModule } from './students/students.module';
@@ -26,6 +27,10 @@ import { AdminSubjectsModule } from './subjects/subjects.module';
       ClassEntity,
       TeacherProfile,
       Subject,
+      ClassTeacherAssignment,
+      // include assignment entity so admin teachers service can inject it
+      // note: defined in admin/classes/entities
+      // import dynamically below
     ]),
     AdminStudentsModule,
     AdminClassesModule,
