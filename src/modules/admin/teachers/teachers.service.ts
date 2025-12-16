@@ -64,56 +64,18 @@ export class AdminTeachersService {
       };
     if (dto.phone) teacherObj.phone = dto.phone;
 
-    // If subjects provided (either names or ids), ensure Subject records exist and attach them
+    // Simplified subject handling: only UUIDs, already validated on frontend
     if (dto.subjects && dto.subjects.length) {
-      const isUuid = (v: string) =>
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          v,
-        );
-
-      const ids: string[] = [];
-      const names: string[] = [];
-      for (const v of dto.subjects) {
-        if (isUuid(v)) ids.push(v);
-        else names.push(v);
+      const subjectIds: string[] = dto.subjects;
+      const subjects = await this.subjectRepo
+        .createQueryBuilder('s')
+        .where('s.id IN (:...subjectIds)', { subjectIds })
+        .andWhere('s.schoolId = :schoolId', { schoolId })
+        .getMany();
+      if (subjects.length !== subjectIds.length) {
+        throw new BadRequestException('One or more subjects are invalid');
       }
-
-      // Fetch subjects by id (validate they belong to the school)
-      let subjectsById: Subject[] = [];
-      if (ids.length) {
-        subjectsById = await this.subjectRepo
-          .createQueryBuilder('s')
-          .where('s.id IN (:...ids)', { ids })
-          .andWhere('s.schoolId = :schoolId', { schoolId })
-          .getMany();
-        if (subjectsById.length !== ids.length) {
-          throw new BadRequestException('One or more subjects are invalid');
-        }
-      }
-
-      // Ensure subjects by name exist (create missing)
-      if (names.length) {
-        for (const name of names) {
-          const s = await this.subjectRepo
-            .createQueryBuilder('s')
-            .where('s.name = :name', { name })
-            .andWhere('s.schoolId = :schoolId', { schoolId })
-            .getOne();
-          if (!s) {
-            await this.subjectRepo.save({ name, school });
-          }
-        }
-      }
-
-      const subjectsByName = names.length
-        ? await this.subjectRepo
-            .createQueryBuilder('s')
-            .where('s.name IN (:...names)', { names })
-            .andWhere('s.schoolId = :schoolId', { schoolId })
-            .getMany()
-        : [];
-
-      teacherObj.subjects = [...subjectsById, ...subjectsByName];
+      teacherObj.subjects = subjects;
     }
 
     const saved = (await this.teacherRepo.save(teacherObj)) as TeacherProfile;
@@ -166,18 +128,16 @@ export class AdminTeachersService {
       await this.assignmentRepo.save(assignments);
     }
 
-    // If a top-level classTeacher is provided, assign this teacher as class teacher for that class
+    // Simplified classTeacher assignment
     if ((dto as unknown as { classTeacher?: string }).classTeacher) {
       const classTeacherId = (dto as unknown as { classTeacher?: string })
         .classTeacher as string;
       const cls = await this.classRepo.findOne({
-        where: { id: classTeacherId },
-        relations: ['school'],
+        where: { id: classTeacherId, school: { id: schoolId } },
       });
-      if (!cls || !cls.school || cls.school.id !== schoolId) {
+      if (!cls) {
         throw new BadRequestException('Class invalid or not in school');
       }
-
       const existingClassTeacher = await this.assignmentRepo
         .createQueryBuilder('a')
         .where('a.classId = :classId', { classId: classTeacherId })
@@ -185,18 +145,15 @@ export class AdminTeachersService {
           isClassTeacher: true,
         })
         .getOne();
-
       if (existingClassTeacher) {
         throw new BadRequestException('Class already has a class teacher');
       }
-
-      // If an assignment for this teacher and class exists, update it; otherwise create it
       const existingAssignment = await this.assignmentRepo.findOne({
         where: { classId: classTeacherId, teacherId: saved.id },
       });
       if (existingAssignment) {
         existingAssignment.isClassTeacher = true;
-        existingAssignment.subjectId = null;
+        // preserve any existing subject association for this teacher/class
         await this.assignmentRepo.save(existingAssignment);
       } else {
         const assignment = this.assignmentRepo.create({
@@ -308,21 +265,30 @@ export class AdminTeachersService {
             isClassTeacher: a.isClassTeacher,
           }));
 
-        // Build a concise classes list (one entry per class)
+        // classes: per-class assignment details (one entry per assignment)
         const classes = teacherAssignments.map((a) => ({
           classId: a.classId,
           className: a.className,
           classSection: a.classSection,
           subjectId: a.subjectId,
           subjectName: a.subjectName,
-          isClassTeacher: a.isClassTeacher,
         }));
+
+        // classTeacher: first assignment where isClassTeacher === true
+        const ct = teacherAssignments.find((a) => a.isClassTeacher) || null;
+        const classTeacher = ct
+          ? {
+              classId: ct.classId,
+              className: ct.className,
+              classSection: ct.classSection,
+            }
+          : null;
 
         return {
           ...teacher,
           subjects: subjectsMap.get(teacher.id) || [], // teacher specialties
-          classes, // per-class subject assignments + class teacher flag
-          assignments: teacherAssignments,
+          classes,
+          classTeacher,
         };
       });
 
@@ -333,7 +299,6 @@ export class AdminTeachersService {
   }
 
   async update(schoolId: string, id: string, dto: UpdateTeacherDto) {
-    const school = await this.ensureSchool(schoolId);
     const teacher = await this.teacherRepo.findOne({
       where: { id },
       relations: ['user'],
@@ -426,7 +391,7 @@ export class AdminTeachersService {
       });
       if (existingAssignment) {
         existingAssignment.isClassTeacher = true;
-        existingAssignment.subjectId = null;
+        // preserve any existing subject association for this teacher/class
         await this.assignmentRepo.save(existingAssignment);
       } else {
         const assignment = this.assignmentRepo.create({
@@ -442,53 +407,17 @@ export class AdminTeachersService {
 
     // legacy `assignClassIds` handling removed
 
-    if (dto.subjects) {
-      const isUuid = (v: string) =>
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          v,
-        );
-
-      const ids: string[] = [];
-      const names: string[] = [];
-      for (const v of dto.subjects) {
-        if (isUuid(v)) ids.push(v);
-        else names.push(v);
+    if (dto.subjects && dto.subjects.length) {
+      const subjectIds: string[] = dto.subjects;
+      const subjects = await this.subjectRepo
+        .createQueryBuilder('s')
+        .where('s.id IN (:...subjectIds)', { subjectIds })
+        .andWhere('s.schoolId = :schoolId', { schoolId })
+        .getMany();
+      if (subjects.length !== subjectIds.length) {
+        throw new BadRequestException('One or more subjects are invalid');
       }
-
-      // Fetch and validate by ids
-      let subjectsById: Subject[] = [];
-      if (ids.length) {
-        subjectsById = await this.subjectRepo
-          .createQueryBuilder('s')
-          .where('s.id IN (:...ids)', { ids })
-          .andWhere('s.schoolId = :schoolId', { schoolId })
-          .getMany();
-        if (subjectsById.length !== ids.length) {
-          throw new BadRequestException('One or more subjects are invalid');
-        }
-      }
-
-      // Ensure names exist
-      if (names.length) {
-        for (const name of names) {
-          const s = await this.subjectRepo
-            .createQueryBuilder('s')
-            .where('s.name = :name', { name })
-            .andWhere('s.schoolId = :schoolId', { schoolId })
-            .getOne();
-          if (!s) await this.subjectRepo.save({ name, school });
-        }
-      }
-
-      const subjectsByName = names.length
-        ? await this.subjectRepo
-            .createQueryBuilder('s')
-            .where('s.name IN (:...names)', { names })
-            .andWhere('s.schoolId = :schoolId', { schoolId })
-            .getMany()
-        : [];
-
-      teacher.subjects = [...subjectsById, ...subjectsByName];
+      teacher.subjects = subjects;
     }
 
     await this.userRepo.save(teacher.user);
