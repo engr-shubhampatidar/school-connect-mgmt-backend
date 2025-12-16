@@ -1,4 +1,4 @@
-import { IsUUID, IsOptional, IsBoolean } from 'class-validator';
+import { IsUUID, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ClassSubjectAssignmentDto {
@@ -15,13 +15,5 @@ export class ClassSubjectAssignmentDto {
   @IsOptional()
   subjectId?: string;
 
-  @ApiPropertyOptional({
-    example: false,
-    description:
-      'Set to true to make this teacher the class teacher (homeroom teacher) for this class. Each class can have only one class teacher.',
-    default: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  isClassTeacher?: boolean;
+  // `isClassTeacher` removed — use top-level `classTeacher` on create/update instead
 }

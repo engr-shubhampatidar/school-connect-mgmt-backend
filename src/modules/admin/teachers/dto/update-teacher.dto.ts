@@ -29,13 +29,21 @@ export class UpdateTeacherDto {
   @IsArray()
   @ArrayUnique()
   @IsUUID('4', { each: true })
-  assignClassIds?: string[];
-
   @ApiPropertyOptional({ type: 'array', items: { type: 'string' } })
   @IsOptional()
   @IsArray()
   @ArrayUnique()
   subjects?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Class ID to set this teacher as the class teacher (homeroom teacher)',
+    type: 'string',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  classTeacher?: string;
 
   @ApiPropertyOptional({
     description:

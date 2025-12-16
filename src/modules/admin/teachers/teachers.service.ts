@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User, UserRole } from '../../users/entities/user.entity';
 import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { School } from '../../schools/entities/school.entity';
@@ -40,8 +40,6 @@ export class AdminTeachersService {
 
   async create(schoolId: string, dto: CreateTeacherDto) {
     const school = await this.ensureSchool(schoolId);
-
-    const dtoAs = dto as unknown as { classId?: string };
 
     const existing = await this.userRepo.findOne({
       where: { email: dto.email },
@@ -117,95 +115,64 @@ export class AdminTeachersService {
         }
       }
 
-      // Check for class teacher conflicts (isClassTeacher = true)
-      const classTeacherAssignments = dto.assignClassSubjects.filter(
-        (a) => a.isClassTeacher === true,
-      );
-      if (classTeacherAssignments.length > 0) {
-        const classTeacherClassIds = classTeacherAssignments.map(
-          (a) => a.classId,
-        );
-        const existingClassTeachers = await this.assignmentRepo
-          .createQueryBuilder('a')
-          .where('a.classId IN (:...ids)', { ids: classTeacherClassIds })
-          .andWhere('a.isClassTeacher = :isClassTeacher', {
-            isClassTeacher: true,
-          })
-          .getMany();
-
-        if (existingClassTeachers.length > 0) {
-          throw new BadRequestException(
-            'One or more classes already have a class teacher',
-          );
-        }
-      }
-
-      // Create assignments
+      // Create assignments (classTeacher handled separately via `classTeacher` field)
       const assignments = dto.assignClassSubjects.map((assignment) =>
         this.assignmentRepo.create({
           classId: assignment.classId,
           teacherId: saved.id,
           subjectId: assignment.subjectId || null,
-          isClassTeacher: assignment.isClassTeacher || false,
+          isClassTeacher: false,
           schoolId,
         }),
       );
       await this.assignmentRepo.save(assignments);
     }
 
-    // DEPRECATED: Keep backward compatibility - optional: assign as class teacher (single class leader)
-    if (dtoAs.classId) {
-      // ensure class exists and belongs to school
+    // If a top-level classTeacher is provided, assign this teacher as class teacher for that class
+    if ((dto as unknown as { classTeacher?: string }).classTeacher) {
+      const classTeacherId = (dto as unknown as { classTeacher?: string })
+        .classTeacher as string;
       const cls = await this.classRepo.findOne({
-        where: { id: dtoAs.classId },
+        where: { id: classTeacherId },
         relations: ['school'],
       });
-      if (!cls || !cls.school || cls.school.id !== schoolId)
+      if (!cls || !cls.school || cls.school.id !== schoolId) {
         throw new BadRequestException('Class invalid or not in school');
+      }
 
-      // ensure class doesn't already have a class teacher (isClassTeacher = true)
-      const existing = await this.assignmentRepo
+      const existingClassTeacher = await this.assignmentRepo
         .createQueryBuilder('a')
-        .where('a.classId = :classId', { classId: dtoAs.classId })
+        .where('a.classId = :classId', { classId: classTeacherId })
         .andWhere('a.isClassTeacher = :isClassTeacher', {
           isClassTeacher: true,
         })
         .getOne();
-      if (existing) {
+
+      if (existingClassTeacher) {
         throw new BadRequestException('Class already has a class teacher');
       }
 
-      // create assignment in a transaction
-      await this.assignmentRepo.manager.transaction(async (manager) => {
-        const assignment = manager.create(ClassTeacherAssignment, {
-          classId: dtoAs.classId,
+      // If an assignment for this teacher and class exists, update it; otherwise create it
+      const existingAssignment = await this.assignmentRepo.findOne({
+        where: { classId: classTeacherId, teacherId: saved.id },
+      });
+      if (existingAssignment) {
+        existingAssignment.isClassTeacher = true;
+        existingAssignment.subjectId = null;
+        await this.assignmentRepo.save(existingAssignment);
+      } else {
+        const assignment = this.assignmentRepo.create({
+          classId: classTeacherId,
           teacherId: saved.id,
           subjectId: null,
           isClassTeacher: true,
           schoolId,
         });
-        await manager.save(assignment);
-      });
-    }
-
-    // If assignClassIds provided on create, create assignments for each class
-    if (dto.assignClassIds && dto.assignClassIds.length) {
-      const classes = await this.classRepo
-        .createQueryBuilder('c')
-        .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
-        .andWhere('c.schoolId = :schoolId', { schoolId })
-        .getMany();
-      if (classes.length) {
-        const assignments = classes.map((c) =>
-          this.assignmentRepo.create({
-            classId: c.id,
-            teacherId: saved.id,
-            schoolId,
-          }),
-        );
-        await this.assignmentRepo.save(assignments);
+        await this.assignmentRepo.save(assignment);
       }
     }
+
+    // legacy classId / assignClassIds handling removed
 
     return { id: saved.id, userId: savedUser.id, message: 'Teacher created' };
   }
@@ -341,37 +308,13 @@ export class AdminTeachersService {
           }
         }
 
-        // Check for class teacher conflicts
-        const classTeacherAssignments = dto.assignClassSubjects.filter(
-          (a) => a.isClassTeacher === true,
-        );
-        if (classTeacherAssignments.length > 0) {
-          const classTeacherClassIds = classTeacherAssignments.map(
-            (a) => a.classId,
-          );
-          const existingClassTeachers = await this.assignmentRepo
-            .createQueryBuilder('a')
-            .where('a.classId IN (:...ids)', { ids: classTeacherClassIds })
-            .andWhere('a.isClassTeacher = :isClassTeacher', {
-              isClassTeacher: true,
-            })
-            .andWhere('a.teacherId != :teacherId', { teacherId: id })
-            .getMany();
-
-          if (existingClassTeachers.length > 0) {
-            throw new BadRequestException(
-              'One or more classes already have a class teacher',
-            );
-          }
-        }
-
-        // Create new assignments
+        // Create new assignments (classTeacher handled separately via `classTeacher` field)
         const assignments = dto.assignClassSubjects.map((assignment) =>
           this.assignmentRepo.create({
             classId: assignment.classId,
             teacherId: id,
             subjectId: assignment.subjectId || null,
-            isClassTeacher: assignment.isClassTeacher || false,
+            isClassTeacher: false,
             schoolId,
           }),
         );
@@ -379,22 +322,53 @@ export class AdminTeachersService {
       }
     }
 
-    // DEPRECATED: Keep backward compatibility
-    if (dto.assignClassIds) {
-      // replace existing class assignments (subjectId NULL) with provided list
-      await this.assignmentRepo.delete({ teacherId: id, subjectId: IsNull() });
-      const classes = await this.classRepo
-        .createQueryBuilder('c')
-        .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
-        .andWhere('c.schoolId = :schoolId', { schoolId })
-        .getMany();
-      if (classes.length) {
-        const assignments = classes.map((c) =>
-          this.assignmentRepo.create({ classId: c.id, teacherId: id }),
+    // If a top-level classTeacher is provided on update, set this teacher as class teacher for that class
+    if ((dto as unknown as { classTeacher?: string }).classTeacher) {
+      const classTeacherId = (dto as unknown as { classTeacher?: string })
+        .classTeacher as string;
+      const cls = await this.classRepo.findOne({
+        where: { id: classTeacherId },
+        relations: ['school'],
+      });
+      if (!cls || !cls.school || cls.school.id !== schoolId) {
+        throw new BadRequestException('Class invalid or not in school');
+      }
+
+      const existingClassTeacher = await this.assignmentRepo
+        .createQueryBuilder('a')
+        .where('a.classId = :classId', { classId: classTeacherId })
+        .andWhere('a.isClassTeacher = :isClassTeacher', {
+          isClassTeacher: true,
+        })
+        .andWhere('a.teacherId != :teacherId', { teacherId: id })
+        .getOne();
+
+      if (existingClassTeacher) {
+        throw new BadRequestException(
+          'One or more classes already have a class teacher',
         );
-        await this.assignmentRepo.save(assignments);
+      }
+
+      const existingAssignment = await this.assignmentRepo.findOne({
+        where: { classId: classTeacherId, teacherId: id },
+      });
+      if (existingAssignment) {
+        existingAssignment.isClassTeacher = true;
+        existingAssignment.subjectId = null;
+        await this.assignmentRepo.save(existingAssignment);
+      } else {
+        const assignment = this.assignmentRepo.create({
+          classId: classTeacherId,
+          teacherId: id,
+          subjectId: null,
+          isClassTeacher: true,
+          schoolId,
+        });
+        await this.assignmentRepo.save(assignment);
       }
     }
+
+    // legacy `assignClassIds` handling removed
 
     if (dto.subjects) {
       for (const name of dto.subjects) {

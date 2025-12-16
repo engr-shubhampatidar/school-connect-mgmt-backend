@@ -14,8 +14,16 @@ import { AdminGuard } from '../admin.guard';
 import { AdminTeachersService } from './teachers.service';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { TeacherListResponseDto } from './dto/teacher-response.dto';
 import { Request } from 'express';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiBody,
+  ApiResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 @ApiTags('Admin - Teachers')
 @UseGuards(AdminGuard)
@@ -38,6 +46,32 @@ export class AdminTeachersController {
 
   @Get()
   @ApiOperation({ summary: 'List teachers (paginated)' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returns paginated list of teachers with their class and subject assignments',
+    type: TeacherListResponseDto,
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by name, email, or phone',
+  })
+  @ApiQuery({
+    name: 'classId',
+    required: false,
+    type: String,
+    description: 'Filter by class ID',
+  })
+  @ApiQuery({
+    name: 'subject',
+    required: false,
+    type: String,
+    description: 'Filter by subject name',
+  })
   async list(
     @Req() req: Request & { user?: { school?: { id?: string } } },
     @Query('page') page?: number,
