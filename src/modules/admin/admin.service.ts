@@ -9,7 +9,7 @@ import * as jwt from 'jsonwebtoken';
 import type { Secret, JwtPayload } from 'jsonwebtoken';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { School } from '../schools/entities/school.entity';
 import { Student } from '../students/entities/student.entity';
 import { ClassEntity } from '../classes/entities/class.entity';
@@ -63,7 +63,7 @@ export class AdminService {
       throw new BadRequestException('School not found or inactive');
     }
 
-    if (user.role !== 'admin') {
+    if (user.role !== UserRole.ADMIN) {
       throw new UnauthorizedException('Not an admin user');
     }
 

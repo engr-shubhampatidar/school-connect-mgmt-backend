@@ -29,10 +29,6 @@ export class UpdateTeacherDto {
   @IsArray()
   @ArrayUnique()
   @IsUUID('4', { each: true })
-  @ApiPropertyOptional({ type: 'array', items: { type: 'string' } })
-  @IsOptional()
-  @IsArray()
-  @ArrayUnique()
   subjects?: string[];
 
   @ApiPropertyOptional({

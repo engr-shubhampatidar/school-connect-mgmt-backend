@@ -4,9 +4,12 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { School } from '../../schools/entities/school.entity';
+import { Subject } from './subject.entity';
 
 @Entity('teacher_profiles')
 export class TeacherProfile {
@@ -24,5 +27,14 @@ export class TeacherProfile {
   @Column({ nullable: true })
   phone?: string;
 
-  // Class and subject membership is now represented via ClassTeacherAssignment
+  // Teacher specialties (subjects) are stored via a many-to-many join table.
+  @ManyToMany(() => Subject, { cascade: false })
+  @JoinTable({
+    name: 'teacher_subjects',
+    joinColumn: { name: 'teacherId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'subjectId', referencedColumnName: 'id' },
+  })
+  subjects?: Subject[];
+
+  // Class membership and per-class subject assignments are represented via ClassTeacherAssignment
 }

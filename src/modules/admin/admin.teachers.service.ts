@@ -4,15 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User, UserRole } from '../users/entities/user.entity';
 import { TeacherProfile } from './entities/teacher-profile.entity';
 import { School } from '../schools/entities/school.entity';
 import { ClassEntity } from '../classes/entities/class.entity';
 import { Subject } from './entities/subject.entity';
 import { ClassTeacherAssignment } from './classes/entities/class-teacher-assignment.entity';
-import { CreateTeacherDto } from './dto/create-teacher.dto';
-import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { CreateTeacherDto } from './teachers/dto/create-teacher.dto';
+import { UpdateTeacherDto } from './teachers/dto/update-teacher.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -140,19 +140,25 @@ export class AdminTeachersService {
     if (dto.fullName) teacher.user.fullName = dto.fullName;
     if (dto.phone !== undefined) teacher.phone = dto.phone;
 
-    if (dto.assignClassIds) {
-      // replace existing class assignments (subjectId NULL) with provided list
-      await this.assignmentRepo.delete({ teacherId: id, subjectId: IsNull() });
-      const classes = await this.classRepo
-        .createQueryBuilder('c')
-        .where('c.id IN (:...ids)', { ids: dto.assignClassIds })
-        .andWhere('c.schoolId = :schoolId', { schoolId })
-        .getMany();
-      if (classes.length) {
-        const assignments = classes.map((c) =>
-          this.assignmentRepo.create({ classId: c.id, teacherId: id }),
-        );
-        await this.assignmentRepo.save(assignments);
+    if (dto.assignClassSubjects) {
+      // replace all existing assignments with provided class-subject pairs
+      await this.assignmentRepo
+        .createQueryBuilder()
+        .delete()
+        .where('teacherId = :id', { id })
+        .execute();
+      const values = dto.assignClassSubjects.map((a) => ({
+        classId: a.classId,
+        subjectId: a.subjectId ?? null,
+        teacherId: id,
+      }));
+      if (values.length) {
+        await this.assignmentRepo
+          .createQueryBuilder()
+          .insert()
+          .into(ClassTeacherAssignment)
+          .values(values)
+          .execute();
       }
     }
 

@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common';
 import { AdminGuard } from './admin.guard';
 import { AdminTeachersService } from './admin.teachers.service';
-import { CreateTeacherDto } from './dto/create-teacher.dto';
-import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { CreateTeacherDto } from './teachers/dto/create-teacher.dto';
+import { UpdateTeacherDto } from './teachers/dto/update-teacher.dto';
 import { Request } from 'express';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 

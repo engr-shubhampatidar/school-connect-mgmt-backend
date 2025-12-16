@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
 import { Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -36,7 +36,7 @@ export class AdminGuard implements CanActivate {
         relations: ['school'],
       });
       if (!user) throw new UnauthorizedException('Invalid token');
-      if (user.role !== 'admin')
+      if (user.role !== UserRole.ADMIN)
         throw new UnauthorizedException('Not an admin');
       // attach user to request
       (req as Request & { user?: User }).user = user;
