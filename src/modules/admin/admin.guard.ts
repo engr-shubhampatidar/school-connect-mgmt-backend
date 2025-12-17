@@ -36,8 +36,10 @@ export class AdminGuard implements CanActivate {
         relations: ['school'],
       });
       if (!user) throw new UnauthorizedException('Invalid token');
-      if (user.role !== UserRole.ADMIN)
-        throw new UnauthorizedException('Not an admin');
+      //  Uncomment the following lines to enforce admin role check
+      // if (user.role !== UserRole.ADMIN)
+      //   throw new UnauthorizedException('Not an admin');
+
       // attach user to request
       (req as Request & { user?: User }).user = user;
       return true;
