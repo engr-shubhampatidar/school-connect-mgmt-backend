@@ -11,6 +11,9 @@ import { AttendanceStudent } from './entities/attendance-student.entity';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { Student } from '../students/entities/student.entity';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
+import { TeacherProfile } from '../admin/entities/teacher-profile.entity';
+import { ClassTeacherAssignment } from '../admin/classes/entities/class-teacher-assignment.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 
 interface AuthUser {
   id: string;
@@ -27,6 +30,10 @@ export class AttendanceService {
     private attendanceStudentRepo: Repository<AttendanceStudent>,
     @InjectRepository(Student)
     private studentRepo: Repository<Student>,
+    @InjectRepository(TeacherProfile)
+    private teacherRepo: Repository<TeacherProfile>,
+    @InjectRepository(ClassTeacherAssignment)
+    private classAssignRepo: Repository<ClassTeacherAssignment>,
   ) {}
 
   async create(createDto: CreateAttendanceDto, user: AuthUser) {
@@ -89,11 +96,33 @@ export class AttendanceService {
 
   async getAttendance(classId: string, date: string, user: AuthUser) {
     const schoolId = user.schoolId;
+    // If the requester is a teacher, ensure they are class teacher for this class
     const attendance = await this.attendanceRepo.findOne({
       where: { schoolId, classId, date },
       relations: ['students'],
     });
-    return attendance ?? null;
+    if (!attendance) return null;
+
+    const maybeUser = user as unknown as User;
+    if (maybeUser && maybeUser.role === UserRole.TEACHER) {
+      // find teacher profile
+      const teacherProfile = await this.teacherRepo.findOne({
+        where: { user: { id: maybeUser.id } },
+      });
+      if (!teacherProfile)
+        throw new BadRequestException('Teacher profile not found');
+
+      const assignment = await this.classAssignRepo.findOne({
+        where: {
+          classId,
+          teacherId: teacherProfile.id,
+          schoolId,
+        },
+      });
+      if (!assignment) throw new BadRequestException('Not authorized');
+    }
+
+    return attendance;
   }
 
   async update(attendanceId: string, dto: UpdateAttendanceDto, user: AuthUser) {
@@ -141,6 +170,18 @@ export class AttendanceService {
     user: AuthUser,
   ) {
     const schoolId = user.schoolId;
+    const maybeUser = user as unknown as User;
+    if (maybeUser && maybeUser.role === UserRole.TEACHER) {
+      const teacherProfile = await this.teacherRepo.findOne({
+        where: { user: { id: maybeUser.id } },
+      });
+      if (!teacherProfile)
+        throw new BadRequestException('Teacher profile not found');
+      const assignment = await this.classAssignRepo.findOne({
+        where: { classId, teacherId: teacherProfile.id, schoolId },
+      });
+      if (!assignment) throw new BadRequestException('Not authorized');
+    }
     const qb = this.attendanceRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.students', 's')
@@ -161,6 +202,23 @@ export class AttendanceService {
     if (!student) throw new NotFoundException('Student not found');
     if (student.schoolId !== schoolId)
       throw new NotFoundException('Student not found in your school');
+
+    const maybeUser = user as unknown as User;
+    if (maybeUser && maybeUser.role === UserRole.TEACHER) {
+      const teacherProfile = await this.teacherRepo.findOne({
+        where: { user: { id: maybeUser.id } },
+      });
+      if (!teacherProfile)
+        throw new BadRequestException('Teacher profile not found');
+      const assignment = await this.classAssignRepo.findOne({
+        where: {
+          classId: student.classId,
+          teacherId: teacherProfile.id,
+          schoolId,
+        },
+      });
+      if (!assignment) throw new BadRequestException('Not authorized');
+    }
 
     const qb = this.attendanceStudentRepo
       .createQueryBuilder('as')
