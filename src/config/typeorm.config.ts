@@ -10,6 +10,7 @@ import { TeacherProfile } from 'src/modules/admin/entities/teacher-profile.entit
 import { ClassTeacherAssignment } from 'src/modules/admin/classes/entities/class-teacher-assignment.entity';
 import { Announcement } from 'src/modules/announcements/entities/announcement.entity';
 import { Attendance } from 'src/modules/attendance/entities/attendance.entity';
+import { AttendanceStudent } from 'src/modules/attendance/entities/attendance-student.entity';
 dotenv.config();
 
 const config: TypeOrmModuleOptions = {
@@ -30,6 +31,7 @@ const config: TypeOrmModuleOptions = {
     ClassTeacherAssignment,
     Announcement,
     Attendance,
+    AttendanceStudent,
   ],
   synchronize: true, // dev-only. Use migrations in prod.
   logging: false,
