@@ -169,7 +169,12 @@ export class AdminTeachersService {
 
     // legacy classId / assignClassIds handling removed
 
-    return { id: saved.id, userId: savedUser.id, message: 'Teacher created' };
+    return {
+      id: saved.id,
+      userId: savedUser.id,
+      password: pw,
+      message: 'Teacher created',
+    };
   }
 
   async findAll(
