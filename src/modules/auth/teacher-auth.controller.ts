@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Body,
   Controller,
@@ -16,7 +16,7 @@ import { TeacherProfile } from '../admin/entities/teacher-profile.entity';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from '../admin/dto/login.dto';
 
-@Controller('teacher')
+@Controller('api/teacher')
 @ApiTags('Teacher Auth')
 export class TeacherAuthController {
   constructor(

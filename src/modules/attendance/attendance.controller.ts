@@ -32,7 +32,7 @@ interface AuthUser {
   schoolId: string;
 }
 
-@Controller('attendance')
+@Controller('api/attendance')
 @ApiTags('Attendance')
 @ApiBearerAuth()
 export class AttendanceController {
