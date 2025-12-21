@@ -133,11 +133,38 @@ export class AttendanceService {
       });
       if (!attendance) throw new NotFoundException('Attendance not found');
 
-      if (dto.date) attendance.date = dto.date;
+      // If date is being changed, ensure uniqueness for class+date
+      if (dto.date && dto.date !== attendance.date) {
+        const existing = await manager.findOne(Attendance, {
+          where: { schoolId, classId: attendance.classId, date: dto.date },
+        });
+        if (existing)
+          throw new ConflictException(
+            'Another attendance exists for this class and date',
+          );
+        attendance.date = dto.date;
+      }
 
       await manager.save(attendance);
 
+      // If students are provided, validate they belong to the same class and school
       if (dto.students && dto.students.length) {
+        const studentIds = dto.students.map((s) => s.studentId);
+        const foundStudents = await manager.findByIds(Student, studentIds);
+        if (foundStudents.length !== studentIds.length)
+          throw new BadRequestException('Some students not found');
+
+        for (const s of foundStudents) {
+          if (s.classId !== attendance.classId)
+            throw new BadRequestException(
+              `Student ${s.id} does not belong to class ${attendance.classId}`,
+            );
+          if (s.schoolId !== schoolId)
+            throw new BadRequestException(
+              `Student ${s.id} does not belong to your school`,
+            );
+        }
+
         for (const s of dto.students) {
           const existing = await manager.findOne(AttendanceStudent, {
             where: { attendanceId: attendance.id, studentId: s.studentId },

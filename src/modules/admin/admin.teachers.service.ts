@@ -112,13 +112,13 @@ export class AdminTeachersService {
     }
     if (query?.classId) {
       qb.andWhere(
-        'EXISTS (SELECT 1 FROM class_teacher_assignments a WHERE a.teacherId = t.id AND a.classId = :classId)',
+        'EXISTS (SELECT 1 FROM class_teacher_assignments a WHERE a."teacherId" = t.id AND a."classId" = :classId)',
         { classId: query.classId },
       );
     }
     if (query?.subject) {
       qb.andWhere(
-        'EXISTS (SELECT 1 FROM class_teacher_assignments a JOIN subjects s ON s.id = a.subjectId WHERE a.teacherId = t.id AND s.name = :subject)',
+        'EXISTS (SELECT 1 FROM class_teacher_assignments a JOIN subjects s ON s.id = a."subjectId" WHERE a."teacherId" = t.id AND s.name = :subject)',
         { subject: query.subject },
       );
     }

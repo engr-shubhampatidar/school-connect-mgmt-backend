@@ -6,6 +6,7 @@ import { AttendanceService } from './attendance.service';
 import { AttendanceController } from './attendance.controller';
 import { AttachUserGuard } from './guards/attach-user.guard';
 import { CreateAttendanceGuard } from './guards/create-attendance.guard';
+import { UpdateAttendanceGuard } from './guards/update-attendance.guard';
 import { User } from '../users/entities/user.entity';
 import { Student } from '../students/entities/student.entity';
 import { TeacherProfile } from '../admin/entities/teacher-profile.entity';
@@ -28,6 +29,7 @@ import { JwtService } from '@nestjs/jwt';
     AttendanceService,
     AttachUserGuard,
     CreateAttendanceGuard,
+    UpdateAttendanceGuard,
     JwtService,
   ],
   exports: [AttendanceService],
