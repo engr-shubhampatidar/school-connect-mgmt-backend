@@ -15,11 +15,11 @@ dotenv.config();
 
 const config: TypeOrmModuleOptions = {
   type: 'postgres',
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 5432),
-  username: process.env.DB_USERNAME ?? process.env.USER,
-  password: process.env.DB_PASSWORD ?? undefined,
-  database: process.env.DB_NAME ?? 'schoolconnect_dev',
+  host: process.env.PGHOST ?? 'localhost',
+  port: Number(process.env.PGPORT ?? 5432),
+  username: process.env.PGUSER ?? process.env.USER,
+  password: process.env.PGPASSWORD ?? undefined,
+  database: process.env.PGDATABASE ?? 'schoolconnect_dev',
   entities: [
     School,
     User,
@@ -34,6 +34,9 @@ const config: TypeOrmModuleOptions = {
     AttendanceStudent,
   ],
   synchronize: true, // dev-only. Use migrations in prod.
+  // Enable SSL when PGSSLMODE=require (e.g., Neon). Disable cert verification
+  // by setting `rejectUnauthorized: false` to allow hosted DBs with managed certs.
+  ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
   logging: false,
 };
 
