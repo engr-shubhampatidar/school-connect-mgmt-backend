@@ -12,7 +12,10 @@ async function bootstrap() {
   // otherwise allow http://localhost:3001 by default.
   const corsOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim())
-    : ['http://localhost:3001'];
+    : [
+        'http://localhost:3001',
+        'https://school-connect-mgmt-frontend.vercel.app',
+      ];
   app.enableCors({
     origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
