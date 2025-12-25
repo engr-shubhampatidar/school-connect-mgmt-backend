@@ -32,11 +32,18 @@ async function bootstrap() {
     .setVersion('0.1')
     .addBearerAuth()
     .build();
+  // const document = SwaggerModule.createDocument(app, config);
+  // SwaggerModule.setup('api/docs', app, document, {
+  //   swaggerOptions: {
+  //     persistAuthorization: true,
+  //   },
+  // });
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
+
+  // expose JSON only
+  app.getHttpAdapter().get('/swagger-json', (req, res) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    res.json(document);
   });
 
   const port = Number(process.env.PORT ?? 3000);
