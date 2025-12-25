@@ -36,7 +36,8 @@ const config: TypeOrmModuleOptions = {
   synchronize: true, // dev-only. Use migrations in prod.
   // Enable SSL when PGSSLMODE=require (e.g., Neon). Disable cert verification
   // by setting `rejectUnauthorized: false` to allow hosted DBs with managed certs.
-  ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
   logging: false,
 };
 

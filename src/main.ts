@@ -2,11 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express from 'express';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+const server = express();
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
   // Enable CORS for development frontends. Configure via CORS_ORIGINS env (comma-separated),
   // otherwise allow http://localhost:3001 by default.
@@ -33,10 +37,10 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('docs', app, document);
 
-  const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port);
-  console.log(`Server listening on http://localhost:${port}`);
+  await app.init();
 }
 void bootstrap();
+
+export default server;

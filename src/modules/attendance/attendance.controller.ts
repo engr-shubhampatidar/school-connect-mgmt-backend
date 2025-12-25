@@ -42,7 +42,11 @@ export class AttendanceController {
 
   @Post()
   @ApiOperation({ summary: 'Create attendance for a class and date' })
-  @ApiResponse({ status: 201, description: 'Attendance created or already exists', type: Attendance })
+  @ApiResponse({
+    status: 201,
+    description: 'Attendance created or already exists',
+    type: Attendance,
+  })
   @UseGuards(CreateAttendanceGuard)
   async create(
     @Body() dto: CreateAttendanceDto,
@@ -54,7 +58,11 @@ export class AttendanceController {
 
   @Get()
   @ApiOperation({ summary: 'Get attendance for a class on a date' })
-  @ApiResponse({ status: 200, description: 'Attendance record or null', type: Attendance })
+  @ApiResponse({
+    status: 200,
+    description: 'Attendance record or null',
+    type: Attendance,
+  })
   @UseGuards(AttachUserGuard)
   async get(
     @Query() query: GetAttendanceQueryDto,
@@ -69,7 +77,11 @@ export class AttendanceController {
 
   @Put(':attendanceId')
   @ApiOperation({ summary: 'Update attendance (Class teacher or Admin)' })
-  @ApiResponse({ status: 200, description: 'Updated attendance record', type: Attendance })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated attendance record',
+    type: Attendance,
+  })
   @UseGuards(UpdateAttendanceGuard)
   async update(
     @Param('attendanceId', new ParseUUIDPipe()) attendanceId: string,
@@ -81,7 +93,12 @@ export class AttendanceController {
 
   @Get('class/:classId')
   @ApiOperation({ summary: 'Get class attendance history' })
-  @ApiResponse({ status: 200, description: 'Array of attendance records for the class', type: Attendance, isArray: true })
+  @ApiResponse({
+    status: 200,
+    description: 'Array of attendance records for the class',
+    type: Attendance,
+    isArray: true,
+  })
   @UseGuards(AttachUserGuard)
   async classHistory(
     @Param('classId') classId: string,
@@ -98,7 +115,12 @@ export class AttendanceController {
 
   @Get('student/:studentId')
   @ApiOperation({ summary: 'Get attendance history for a student' })
-  @ApiResponse({ status: 200, description: "Student's attendance records", type: AttendanceStudent, isArray: true })
+  @ApiResponse({
+    status: 200,
+    description: "Student's attendance records",
+    type: AttendanceStudent,
+    isArray: true,
+  })
   @UseGuards(AttachUserGuard)
   async studentHistory(
     @Param('studentId') studentId: string,
