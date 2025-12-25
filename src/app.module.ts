@@ -6,6 +6,8 @@ import { PublicModule } from './modules/public/public.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -16,5 +18,7 @@ import { TeacherModule } from './modules/teacher/teacher.module';
     AttendanceModule,
     TeacherModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
