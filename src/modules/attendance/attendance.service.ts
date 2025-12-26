@@ -225,6 +225,7 @@ export class AttendanceService {
     // Ensure student belongs to same school
     const student = await this.studentRepo.findOne({
       where: { id: studentId },
+      relations: ['currentClass'],
     });
     if (!student) throw new NotFoundException('Student not found');
     if (student.schoolId !== schoolId)
@@ -253,6 +254,14 @@ export class AttendanceService {
       .where('as.studentId = :studentId', { studentId })
       .andWhere('a.schoolId = :schoolId', { schoolId })
       .orderBy('a.date', 'DESC');
-    return qb.getMany();
+    const records = await qb.getMany();
+
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      class: student.currentClass ? student.currentClass.name : null,
+      section: student.currentClass ? student.currentClass.section : null,
+      attendance: records,
+    };
   }
 }
